@@ -9,9 +9,10 @@ A complete Library Management System built with MongoDB, Express.js, React.js, a
 Check out the live demo of the project:https://library-management-app-karan.vercel.app/
 
 **Test Credentials:**
-- Admin: admin@example.com / admin123
-- Librarian: librarian@example.com / lib123
-- Student: student@example.com / student123
+Admin: admin@admin.com / admin123
+Librarian: staff@librarian.com / librarian123
+Student: user@student.com / student123
+
 
 ## ✨ Key Features
 
