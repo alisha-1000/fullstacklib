@@ -3,10 +3,9 @@ const router = express.Router();
 
 const { checkRole } = require("../middlewares/checkRole");
 const { userAuth } = require("../middlewares/userAuth");
-const userController = require("../controller/userController");
 
-
-
+// FIXED IMPORT
+const { userController } = require("../controller/userController");
 
 // ======================
 // User Routes

@@ -2,10 +2,9 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "./login.css"; 
+import "./login.css";
 import { Server_URL } from "../../utils/config";
 import { showErrorToast, showSuccessToast } from "../../utils/toasthelper";
-
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -14,9 +13,11 @@ export default function Login() {
   const onSubmit = async (data) => {
     try {
       const response = await axios.post(`${Server_URL}users/login`, data);
-      const { role, token } = response.data.user;
 
-      localStorage.setItem("authToken", response.data.token);
+      const token = response.data.token;
+      const role = response.data.user.role;
+
+      localStorage.setItem("authToken", token);
       localStorage.setItem("role", role);
 
       if (role === "admin" || role === "librarian") {
@@ -27,46 +28,47 @@ export default function Login() {
 
       showSuccessToast("Login Successful!");
     } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
-      showErrorToast("Login Failed!");
+      showErrorToast("Invalid Login");
     }
   };
 
   return (
     <div className="login-container">
       <div className="login-box">
+        
         <h2 className="login-title">User Login</h2>
+
         <form onSubmit={handleSubmit(onSubmit)} className="login-form">
-         
+
           <div className="form-group">
             <label>Email</label>
             <input
-              type="email"
               {...register("email", { required: "Email is required" })}
+              type="email"
               className="form-input"
+              placeholder="Enter email"
             />
-            {errors.email && <span className="error-text">{errors.email.message}</span>}
+            {errors.email && (
+              <p className="error-text">{errors.email.message}</p>
+            )}
           </div>
 
-          
           <div className="form-group">
             <label>Password</label>
             <input
-              type="password"
               {...register("password", { required: "Password is required" })}
+              type="password"
               className="form-input"
+              placeholder="Enter password"
             />
-            {errors.password && <span className="error-text">{errors.password.message}</span>}
+            {errors.password && (
+              <p className="error-text">{errors.password.message}</p>
+            )}
           </div>
 
-          <div className="forgot-password">
-            <button type="button" className="forgot-btn" onClick={() => navigate("/forgetpassword")}>
-              Forgot Password?
-            </button>
-          </div>
-
-          
-          <button type="submit" className="btn-submit">Login</button>
+          <button type="submit" className="btn-submit">
+            Login
+          </button>
         </form>
       </div>
     </div>

@@ -2,44 +2,32 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminNavbar from "../components/adminnavbar";
 import AdminFooter from "../components/AdminFooter";
-import { ToastContainer } from 'react-toastify';
 
-export default function adminLayout() {
-  const [render,setRender] = useState(false);
-  const token = localStorage.getItem("authToken")
-  const role = localStorage.getItem("role");
+export default function AdminLayout() {
   const navigate = useNavigate();
+  const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    if(token && (role === "librarian" || role === "admin")){
-      setRender(true)
+    const token = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+
+    if (!token) {
+      navigate("/admin-login");
+      return;
     }
-    else{
-      navigate("/login")
-    }    
-  },[])
 
+    if (role === "admin" || role === "librarian") {
+      setAllowed(true);
+    } else {
+      navigate("/");
+    }
+  }, []);
 
-  return (
+  return allowed ? (
     <>
-
-    {render ? <><AdminNavbar />
-          <Outlet />
-          <AdminFooter /></> :
-          null
-          }
-          <ToastContainer
-position="top-right"
-autoClose={1000}
-hideProgressBar={false}
-newestOnTop={false}
-closeOnClick
-rtl={false}
-pauseOnFocusLoss
-draggable
-pauseOnHover
-theme="light"
-/> 
+      <AdminNavbar />
+      <Outlet />
+      <AdminFooter />
     </>
-  );
+  ) : null;
 }

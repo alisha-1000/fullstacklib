@@ -1,97 +1,59 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Server_URL } from "../../utils/config";
-import { showErrorToast, showSuccessToast } from "../../utils/toasthelper";
 
-
-export default function LibrarianRequests() {
-  const [requests, setRequests] = useState([]);
-
-  const fetchRequests = async () => {
-    try {
-      const url = Server_URL + "librarian/issuerequest"
-      const res = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`
-        }
-      });
-      console.log(res);
-      setRequests(res.data.requests);
-    } catch (err) {
-      console.error("Error fetching requests", err);
-    }
-  };
+function BooksBorrowed() {
+  const [data, setData] = useState([]);
 
   useEffect(() => {
-    fetchRequests();
+    axios
+      .get("http://localhost:5001/borrow/borrowed-books") // ✅ Correct route
+      .then((res) => {
+        setData(res.data.borrowed || []);
+      })
+      .catch((err) => console.error("Fetch error:", err));
   }, []);
 
-  const approveRequest = async (id) => {
-    try {
-      const url = Server_URL + "librarian/approverequest/" + id;
-      const response = await axios.put(url, {}, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`
-        }
-      });
-  
-      
-      showSuccessToast(response.data.message || "Book issued successfully!");
-      fetchRequests();
-    } catch (err) {
-      if (err.response) {
-        const message = err.response.data?.error || "Something went wrong";
-        showErrorToast( message);
-      } else {
-        
-        showErrorToast("Network error: " + err.message);
-      }
-      console.error("Error approving request:", err);
-    }
-  };
-  
-
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">📚 Pending Book Requests</h2>
+    <div className="admin-container">
+      <h2 className="page-title">Borrowed Books</h2>
 
-      {requests.length === 0 ? (
-        <div className="alert alert-info">No pending requests.</div>
-      ) : (
-        <div className="table-responsive">
-          <table className="table table-bordered table-striped">
-            <thead className="table-primary">
-              <tr>
-                <th>User Name</th>
-                <th>Book Title</th>
-                <th>Issue Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Actions</th>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Book</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {data.length > 0 ? (
+            data.map((item, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{item.bookId?.title}</td>
+                <td>{item.userId?.name}</td>
+                <td>{item.userId?.email}</td>
+                <td>{new Date(item.issueDate).toLocaleDateString()}</td>
+                <td>{new Date(item.dueDate).toLocaleDateString()}</td>
+                <td>{item.status}</td>
               </tr>
-            </thead>
-            <tbody>
-              {requests.map((req) => (
-                <tr key={req._id}>
-                  <td>{req.userId?.name || "N/A"}</td>
-                  <td>{req.bookId?.title || "N/A"}</td>
-                  <td>{new Date(req.issueDate).toLocaleDateString()}</td>
-                  <td>{new Date(req.dueDate).toLocaleDateString()}</td>
-                  <td><span className="badge bg-warning">{req.status}</span></td>
-                  <td>
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() => approveRequest(req._id)}
-                    >
-                      ✅ Approve
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))
+          ) : (
+            <tr>
+              <td colSpan="7" style={{ textAlign: "center" }}>
+                No borrowed books found
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
+
+export default BooksBorrowed;

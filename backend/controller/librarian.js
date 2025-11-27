@@ -1,143 +1,159 @@
-const { UserModel } = require("../model/UserModel");
-const bcrypt = require("bcryptjs");
-const JWT_SECRET = "12345@abcd12";
-const jwt = require("jsonwebtoken");
 const { BorrowModel } = require("../model/BorrowModel");
 const { BookModel } = require("../model/BookModel");
-const calculateFine = require("../utils/fineCalculator");
-const { clearCache } = require("../utils/cache");
+
 const librarianController = {};
 
+/* ======================================================
+   📘 1. BOOK ISSUED LIST (Admin + Librarian)
+====================================================== */
 librarianController.bookIssued = async (req, res) => {
   try {
-    const requests = await BorrowModel.find({ status: "Issued" })
-      .populate("userId", "name email")
-      .populate("bookId", "title")
-      .sort({ createdAt: -1 });
+    const issued = await BorrowModel.find({
+      status: { $in: ["Issued", "Requested Return"] }
+    })
+      .populate("bookId")
+      .populate("userId")
+      .sort({ issueDate: -1 });
 
-    res
-      .status(200)
-      .json({ message: "Requested books fetched successfully", requests });
-  } catch (err) {
-    console.error("Error fetching requests", err);
-    res.status(500).json({ error: "Server error" });
+    res.json({ error: false, issued });
+  } catch (error) {
+    console.log("BOOK ISSUED ERROR:", error);
+    res.status(500).json({ error: true, message: "Server Error" });
   }
 };
 
+/* ======================================================
+   📗 2. ISSUE REQUEST LIST (Only Librarian)
+====================================================== */
 librarianController.issueRequest = async (req, res) => {
   try {
     const requests = await BorrowModel.find({ status: "Requested" })
-      .populate("userId", "name email")
-      .populate("bookId", "title")
-      .sort({ createdAt: -1 });
+      .populate("bookId")
+      .populate("userId");
 
-    res
-      .status(200)
-      .json({ message: "Requested books fetched successfully", requests });
-  } catch (err) {
-    console.error("Error fetching requests", err);
-    res.status(500).json({ error: "Server error" });
+    res.json({ error: false, requests });
+  } catch (error) {
+    console.log("ISSUE REQUEST ERROR:", error);
+    res.status(500).json({ error: true, message: "Server Error" });
   }
 };
 
-librarianController.approveRequest = async (req, res) => {
-  const requestId = req.params.id;
-
-  try {
-    const borrowRequest = await BorrowModel.findById(requestId);
-    if (!borrowRequest) {
-      return res.status(404).json({ error: "Borrow request not found" });
-    }
-
-    const issuedCount = await BorrowModel.countDocuments({
-      userId: borrowRequest.userId,
-      status: "Issued",
-    });
-
-    if (issuedCount >= 4) {
-      return res.status(400).json({ error: "User already has 4 issued books" });
-    }
-
-    const book = await BookModel.findById(borrowRequest.bookId);
-    if (!book) {
-      return res.status(404).json({ error: "Book not found" });
-    }
-
-    if (book.availableCopies < 1) {
-      return res.status(400).json({ error: "No copies available" });
-    }
-
-    book.availableCopies -= 1;
-    await book.save();
-
-    borrowRequest.status = "Issued";
-    borrowRequest.approvedBy = req.userInfo.id;
-    await borrowRequest.save();
-    clearCache("homeData");
-    res.json({ message: "Book issued successfully", borrow: borrowRequest });
-  } catch (err) {
-    console.error("Error approving request", err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
+/* ======================================================
+   📕 3. RETURN REQUEST LIST (Only Librarian)
+====================================================== */
 librarianController.returnRequest = async (req, res) => {
   try {
-    const requests = await BorrowModel.find({ status: "Requested Return" })
-      .populate("userId", "name email")
-      .populate("bookId", "title")
-      .sort({ createdAt: -1 });
+    const requests = await BorrowModel.find({
+      status: "Requested Return"
+    })
+      .populate("bookId")
+      .populate("userId");
 
-    const requestsWithFine = requests.map((req) => {
-      const fine = calculateFine(req.dueDate, req.returnDate);
-      return { ...req.toObject(), fine };
-    });
-
-    res.status(200).json({
-      message: "Requested books fetched successfully",
-      requests: requestsWithFine,
-    });
-  } catch (err) {
-    console.error("Error fetching requests", err);
-    res.status(500).json({ error: "Server error" });
+    res.json({ error: false, requests });
+  } catch (error) {
+    console.log("RETURN REQUEST ERROR:", error);
+    res.status(500).json({ error: true, message: "Server Error" });
   }
 };
 
+/* ======================================================
+   ✔ 4. APPROVE ISSUE REQUEST
+====================================================== */
+librarianController.approveRequest = async (req, res) => {
+  try {
+    const request = await BorrowModel.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Not found" });
+
+    if (request.status !== "Requested") {
+      return res.status(400).json({ message: "Already processed" });
+    }
+
+    request.status = "Issued";
+    request.approvedBy = req.userInfo.id;
+    await request.save();
+
+    await BookModel.findByIdAndUpdate(request.bookId, {
+      $inc: { availableCopies: -1 }
+    });
+
+    res.json({ message: "Issue request approved" });
+  } catch (error) {
+    console.log("APPROVE REQUEST ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+/* ======================================================
+   ✔ 5. APPROVE RETURN REQUEST
+====================================================== */
 librarianController.approveReturnRequest = async (req, res) => {
   try {
-    const borrowId = req.params.id;
+    const request = await BorrowModel.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Not found" });
 
-    const borrow = await BorrowModel.findById(borrowId);
-    if (!borrow)
-      return res.status(404).json({ message: "Borrow record not found" });
-
-    if (borrow.status !== "Requested Return") {
-      return res
-        .status(400)
-        .json({ message: "Book return not requested or already processed" });
+    if (request.status !== "Requested Return") {
+      return res.status(400).json({
+        message: "Only return requests can be approved"
+      });
     }
 
-    const book = await BookModel.findById(borrow.bookId);
-    if (!book) return res.status(404).json({ message: "Book not found" });
+    request.status = "Returned";
+    request.returnDate = new Date();
+    request.approvedBy = req.userInfo.id;
+    await request.save();
 
-    if (book.availableCopies < book.totalCopies) {
-      book.availableCopies += 1;
-      await book.save();
-    }
+    await BookModel.findByIdAndUpdate(request.bookId, {
+      $inc: { availableCopies: +1 }
+    });
 
-    borrow.status = "Returned";
-    borrow.returnDate = new Date();
-    borrow.approvedBy = req.userInfo.id;
-
-    await borrow.save();
-    clearCache("homeData");
-    res
-      .status(200)
-      .json({ message: "Book return approved and updated successfully" });
+    res.json({ message: "Book return approved" });
   } catch (error) {
-    console.error("Error approving return request:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.log("APPROVE RETURN ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-module.exports = { librarianController };
+/* ======================================================
+   ✖ 6. REJECT RETURN REQUEST
+====================================================== */
+librarianController.rejectReturnRequest = async (req, res) => {
+  try {
+    const request = await BorrowModel.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Not found" });
+
+    if (request.status !== "Requested Return") {
+      return res.status(400).json({
+        message: "Cannot reject, invalid status"
+      });
+    }
+
+    request.status = "Issued"; // Still with user
+    await request.save();
+
+    res.json({ message: "Return request rejected" });
+  } catch (error) {
+    console.log("REJECT RETURN ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+/* ======================================================
+   📙 7. BORROWED BOOKS LIST (Admin + Librarian)
+====================================================== */
+librarianController.borrowedBooks = async (req, res) => {
+  try {
+    const borrowed = await BorrowModel.find({
+      status: { $in: ["Issued", "Requested Return"] }
+    })
+      .populate("bookId")
+      .populate("userId")
+      .sort({ issueDate: -1 });
+
+    res.json({ error: false, borrowed });
+  } catch (error) {
+    console.log("BORROWED BOOKS ERROR:", error);
+    res.status(500).json({ error: true, message: "Server Error" });
+  }
+};
+
+module.exports = { librarian};

@@ -8,41 +8,26 @@ const admin = require("./routes/admin");
 const librarian = require("./routes/librarian");
 const home = require("./routes/home");
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://library-management-app-karan.vercel.app",
+];
+
 const app = express();
 
-// Parse environment CORS origins (comma-separated list)
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",")
-  : ["http://localhost:5173"];  // fallback
-
 app.use(express.json());
-
-// Dynamic CORS Handler
- app.use(
+app.use(
   cors({
     origin(origin, callback) {
-      // Allow server-to-server, Postman, curl, etc.
-      if (!origin) return callback(null, true);
-
-      // Allow ALL localhost ports
-      if (origin.startsWith("http://localhost")) {
-        return callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
       }
-
-      // Allow origins defined in .env (production)
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.log("❌ Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
-
-// Handle OPTIONS preflight correctly
-app.options("*", cors());
 
 app.use("/users", users);
 app.use("/books", books);
@@ -55,3 +40,4 @@ app.get("/", (req, res) => {
 });
 
 module.exports = app;
+

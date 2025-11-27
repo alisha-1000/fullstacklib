@@ -3,26 +3,28 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { Server_URL } from "../../utils/config";
 import { showErrorToast, showSuccessToast } from "../../utils/toasthelper";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const navigate = useNavigate();
 
   const onSubmit = async (data) => {
     try {
-      // Auto-assign role = user
+      // Assign default role
       const formData = { ...data, role: "user" };
 
-      console.log("Sending:", formData);
+      const response = await axios.post(`${Server_URL}users/register`, formData);
 
-      const response = await axios.post(
-        `${Server_URL}users/register`,
-        formData
-      );
+      showSuccessToast(response.data.message || "Registration Successful!");
 
-      console.log("Response:", response.data);
-
-      showSuccessToast("Registration Successful!");
       reset();
+
+      // Redirect user
+      setTimeout(() => {
+        navigate("/login");
+      }, 800);
+
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
       showErrorToast(error.response?.data?.message || "Registration Failed!");
@@ -79,7 +81,7 @@ export default function Register() {
           {errors.stream && <p className="text-danger">{errors.stream.message}</p>}
         </div>
 
-        {/* Year (String allowed now because schema changed) */}
+        {/* Year */}
         <div className="mb-3">
           <label className="form-label">Year (e.g., 1st, 2nd, 3rd)</label>
           <input 

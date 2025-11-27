@@ -1,6 +1,6 @@
-const {model} = require("mongoose");
-const {BorrowSchema} = require("../schemas/BorrowSchema");
+const mongoose = require("mongoose");
+const { BorrowSchema } = require("../schemas/BorrowSchema");
 
-const BorrowModel = new model("BorrowedBooks",BorrowSchema);
+const BorrowModel = mongoose.model("Borrow", BorrowSchema);
 
-module.exports = {BorrowModel};
+module.exports = { BorrowModel };

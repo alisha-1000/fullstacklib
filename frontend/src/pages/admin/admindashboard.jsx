@@ -16,7 +16,6 @@ const AdminDashboard = () => {
   const [totalBooks, setTotalBooks] = useState(0);
   const [borrowedBooks, setBorrowedBooks] = useState(0);
   const [occupancyPercent, setOccupancyPercent] = useState(0);
-  const [issueRequest, setIssueRequest] = useState(0);
   const [categoryData, setCategoryData] = useState({
     labels: [],
     datasets: [
@@ -33,154 +32,135 @@ const AdminDashboard = () => {
     ],
   });
 
-  const token = localStorage.getItem("authToken");
   const role = localStorage.getItem("role");
 
+  // ---------------- USERS ----------------
   async function getUsers() {
     try {
-      const url = Server_URL + "users";
-      const result = await axios.get(url);
-      const { error, message } = result.data;
-      if (error) {
-        alert(message);
-      } else {
-        const { user, totalUser } = result.data;
-        const students = user.filter((u) => u.role === "user");
-        const librarians = user.filter((u) => u.role === "librarian");
-        setUser(students);
-        setLib(librarians);
-        setTotalUser(students.length);
-        setTotalLib(librarians.length);
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error);
+      const result = await axios.get(Server_URL + "users");
+      const { user } = result.data;
+
+      const students = user.filter((u) => u.role === "student");
+      const librarians = user.filter((u) => u.role === "librarian");
+
+      setUser(students);
+      setLib(librarians);
+
+      setTotalUser(students.length);
+      setTotalLib(librarians.length);
+    } catch (err) {
+      console.log("Error fetching users");
     }
   }
 
+  // ---------------- BOOKS ----------------
   async function getBooks() {
     try {
-      const url = Server_URL + "books";
-      const result = await axios.get(url);
-      const { error, message } = result.data;
-      if (error) {
-        alert(message);
-      } else {
-        const { books, totalBooks } = result.data;
-        setBooks(books);
-        setTotalBooks(totalBooks);
+      const result = await axios.get(Server_URL + "books");
+      const { books, totalBooks } = result.data;
 
-        const categoryCount = books.reduce((acc, book) => {
-          acc[book.category] = (acc[book.category] || 0) + 1;
-          return acc;
-        }, {});
+      setBooks(books);
+      setTotalBooks(totalBooks);
 
-        const labels = Object.keys(categoryCount);
-        const data = Object.values(categoryCount);
-        setCategoryData({
-          labels,
-          datasets: [
-            {
-              data,
-              backgroundColor: [
-                "#3498db",
-                "#f39c12",
-                "#9b59b6",
-                "#e74c3c",
-                "#2ecc71",
-              ],
-            },
-          ],
-        });
+      const categoryCount = books.reduce((acc, book) => {
+        acc[book.category] = (acc[book.category] || 0) + 1;
+        return acc;
+      }, {});
 
-        const borrowed = books.reduce((acc, book) => {
-          return acc + (book.totalCopies - book.availableCopies);
-        }, 0);
-        setBorrowedBooks(borrowed);
+      setCategoryData({
+        labels: Object.keys(categoryCount),
+        datasets: [
+          {
+            data: Object.values(categoryCount),
+            backgroundColor: [
+              "#3498db",
+              "#f39c12",
+              "#9b59b6",
+              "#e74c3c",
+              "#2ecc71",
+            ],
+          },
+        ],
+      });
 
-        const total = books.reduce((acc, book) => acc + book.totalCopies, 0);
-        const occupancy = total ? Math.round((borrowed / total) * 100) : 0;
-        setOccupancyPercent(occupancy);
-      }
-    } catch (error) {
-      console.error("Error fetching books:", error);
+      const borrowed = books.reduce(
+        (acc, book) => acc + (book.totalCopies - book.availableCopies),
+        0
+      );
+      setBorrowedBooks(borrowed);
+
+      const totalCopies = books.reduce(
+        (acc, b) => acc + b.totalCopies,
+        0
+      );
+      setOccupancyPercent(totalCopies ? Math.round((borrowed / totalCopies) * 100) : 0);
+    } catch (err) {
+      console.log("Error fetching books");
     }
   }
 
+  // ------------ Latest Books --------------
   async function getLatestBooks() {
     try {
-      const url = Server_URL + 'books/new';
-      const result = await axios.get(url);
-      const {error, message} = result.data;
-      if (error) {
-        alert(message);        
-      } else {
-        console.log("result");
-        console.log(result);
-        const {books, totalBooks} = result.data;
-        setLatestBooks(books);
-      }
-    } catch (error) {
-      console.error("Error fetching books:", error);            
-    }    
+      const result = await axios.get(Server_URL + "books/new");
+      setLatestBooks(result.data.books || []);
+    } catch (err) {
+      console.log("Error fetching latest");
+    }
   }
 
-  const handleSectionChange = (section) => {
-    setSelectedSection(section);
-  };
-
+  // Load everything
   useEffect(() => {
     getUsers();
     getBooks();
     getLatestBooks();
   }, []);
 
+  const handleSectionChange = (sec) => setSelectedSection(sec);
+
   return (
     <div className="admin-dashboard">
       <div className="row g-0">
+
+        {/* ---------- SIDEBAR ---------- */}
         <nav className="col-md-3 col-lg-2 admin-sidebar">
-          {role == "admin" ? (
-            <h4 className="admin-sidebar-title">📌 Admin Panel</h4>
-          ) : (
-            <h4 className="admin-sidebar-title">📌 Librarian Panel</h4>
-          )}
+          <h4 className="admin-sidebar-title">
+            📌 {role === "admin" ? "Admin Panel" : "Librarian Panel"}
+          </h4>
+
           <ul className="admin-nav">
             <li className="admin-nav-item">
               <button
-                className={`admin-nav-btn ${
-                  selectedSection === "dashboard" ? "active" : ""
-                }`}
+                className={`admin-nav-btn ${selectedSection === "dashboard" ? "active" : ""}`}
                 onClick={() => handleSectionChange("dashboard")}
               >
                 📊 Dashboard
               </button>
             </li>
+
             <li className="admin-nav-item">
               <button
-                className={`admin-nav-btn ${
-                  selectedSection === "users" ? "active" : ""
-                }`}
+                className={`admin-nav-btn ${selectedSection === "users" ? "active" : ""}`}
                 onClick={() => handleSectionChange("users")}
               >
                 👥 Users
               </button>
             </li>
+
             {role === "admin" && (
               <li className="admin-nav-item">
                 <button
-                  className={`admin-nav-btn ${
-                    selectedSection === "librarians" ? "active" : ""
-                  }`}
+                  className={`admin-nav-btn ${selectedSection === "librarians" ? "active" : ""}`}
                   onClick={() => handleSectionChange("librarians")}
                 >
                   📚 Librarians
                 </button>
               </li>
             )}
+
             <li className="admin-nav-item">
               <button
-                className={`admin-nav-btn ${
-                  selectedSection === "books" ? "active" : ""
-                }`}
+                className={`admin-nav-btn ${selectedSection === "books" ? "active" : ""}`}
                 onClick={() => handleSectionChange("books")}
               >
                 📖 Books
@@ -189,7 +169,9 @@ const AdminDashboard = () => {
           </ul>
         </nav>
 
+        {/* ---------- MAIN CONTENT ---------- */}
         <main className="col-md-9 col-lg-10 admin-main">
+          {/* -------- Dashboard Section -------- */}
           {selectedSection === "dashboard" && (
             <>
               <h2 className="admin-section-title">📊 Dashboard Overview</h2>
@@ -199,16 +181,19 @@ const AdminDashboard = () => {
                   <h3>Total Books</h3>
                   <p>{totalBooks}</p>
                 </div>
+
                 <div className="stat-card users">
                   <h3>Total Users</h3>
                   <p>{totalUser}</p>
                 </div>
+
                 {role === "admin" && (
                   <div className="stat-card librarians">
                     <h3>Total Librarians</h3>
                     <p>{totalLib}</p>
                   </div>
                 )}
+
                 <div className="stat-card borrowed">
                   <h3>Books Borrowed</h3>
                   <p>{borrowedBooks}</p>
@@ -253,12 +238,14 @@ const AdminDashboard = () => {
 
                 <div className="activity-card">
                   <h3>Recent Addition</h3>
+
                   <div className="activity-list">
-                    {latestBooks.slice(0, 4).map((book, index) => (
-                      <div key={index} className="activity-item">
+                    {latestBooks.slice(0, 4).map((book, idx) => (
+                      <div key={idx} className="activity-item">
                         <div className="activity-icon">📚</div>
                         <div className="activity-text">
-                          <strong>{book.title}</strong> added by {book.addedBy?.name} 
+                          <strong>{book.title}</strong>{" "}
+                          {book.addedBy?.name && <>added by {book.addedBy.name}</>}
                         </div>
                       </div>
                     ))}
@@ -268,6 +255,7 @@ const AdminDashboard = () => {
             </>
           )}
 
+          {/* -------- Users Section -------- */}
           {selectedSection === "users" && (
             <>
               <h2 className="admin-section-title">👥 Users Management</h2>
@@ -275,19 +263,19 @@ const AdminDashboard = () => {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>#</th>
                       <th>Name</th>
                       <th>Email</th>
                       <th>Stream</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {user.map((data, index) => (
+                    {user.map((u, index) => (
                       <tr key={index}>
                         <td>{index + 1}</td>
-                        <td>{data.name}</td>
-                        <td>{data.email}</td>
-                        <td>{data.stream}</td>
+                        <td>{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.stream}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -296,26 +284,27 @@ const AdminDashboard = () => {
             </>
           )}
 
-          {selectedSection === "librarians" && (
+          {/* -------- Librarians Section -------- */}
+          {selectedSection === "librarians" && role === "admin" && (
             <>
               <h2 className="admin-section-title">📚 Librarians Management</h2>
               <div className="admin-table-container">
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>#</th>
                       <th>Name</th>
                       <th>Email</th>
                       <th>Role</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {lib.map((data, index) => (
+                    {lib.map((u, index) => (
                       <tr key={index}>
                         <td>{index + 1}</td>
-                        <td>{data.name}</td>
-                        <td>{data.email}</td>
-                        <td>{data.role}</td>
+                        <td>{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.role}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -324,6 +313,7 @@ const AdminDashboard = () => {
             </>
           )}
 
+          {/* -------- Books Section -------- */}
           {selectedSection === "books" && (
             <>
               <h2 className="admin-section-title">📖 Books Inventory</h2>
@@ -331,7 +321,7 @@ const AdminDashboard = () => {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>#</th>
                       <th>Title</th>
                       <th>Author</th>
                       <th>Category</th>
@@ -340,14 +330,14 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {books.map((data, index) => (
-                      <tr key={index}>
-                        <td>{index + 1}</td>
-                        <td>{data.title}</td>
-                        <td>{data.author}</td>
-                        <td>{data.category}</td>
-                        <td>{data.totalCopies}</td>
-                        <td>{data.availableCopies}</td>
+                    {books.map((b, idx) => (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td>{b.title}</td>
+                        <td>{b.author}</td>
+                        <td>{b.category}</td>
+                        <td>{b.totalCopies}</td>
+                        <td>{b.availableCopies}</td>
                       </tr>
                     ))}
                   </tbody>

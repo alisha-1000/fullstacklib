@@ -1,16 +1,64 @@
 const express = require("express");
-const  router = express.Router();
-const {librarianController} = require("../controller/librarian")
+const router = express.Router();
 
-const {userAuth} = require("../middlewares/userAuth");
-const {checkRole} = require("../middlewares/checkRole");
+const { librarianController } = require("../controller/librarian");
+const { userAuth } = require("../middlewares/userAuth");
+const { checkRole } = require("../middlewares/checkRole");
 
-router.get("/bookissued",userAuth,checkRole(["admin", "librarian"]),librarianController.bookIssued)
-router.get("/issuerequest",userAuth,checkRole("librarian"),librarianController.issueRequest)
-router.get("/returnrequest",userAuth,checkRole("librarian"),librarianController.returnRequest)
-router.put("/approverequest/:id",userAuth,checkRole("librarian"),librarianController.approveRequest)
-router.put("/approvereturnrequest/:id",userAuth,checkRole("librarian"),librarianController.approveReturnRequest)
+// Book Issued List
+router.get(
+  "/bookissued",
+  userAuth,
+  checkRole(["admin", "librarian"]),
+  librarianController.bookIssued
+);
 
+// Issue Request List
+router.get(
+  "/issuerequest",
+  userAuth,
+  checkRole("librarian"),
+  librarianController.issueRequest
+);
 
+// Return Request List
+router.get(
+  "/returnrequest",
+  userAuth,
+  checkRole("librarian"),
+  librarianController.returnRequest
+);
 
-module.exports = router
+// Approve Issue Request
+router.put(
+  "/approverequest/:id",
+  userAuth,
+  checkRole("librarian"),
+  librarianController.approveRequest
+);
+
+// Approve Return Request
+router.put(
+  "/approvereturnrequest/:id",
+  userAuth,
+  checkRole("librarian"),
+  librarianController.approveReturnRequest
+);
+
+// Reject Return Request  (REQUIRED FOR FRONTEND)
+router.put(
+  "/rejectreturn/:id",
+  userAuth,
+  checkRole("librarian"),
+  librarianController.rejectReturnRequest
+);
+
+// Borrowed Books List (REQUIRED FOR ADMIN PANEL)
+router.get(
+  "/borrowedbooks",
+  userAuth,
+  checkRole(["admin", "librarian"]),
+  librarianController.borrowedBooks
+);
+
+module.exports = router;
