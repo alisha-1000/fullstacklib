@@ -23,7 +23,7 @@ librarianController.bookIssued = async (req, res) => {
 };
 
 /* ======================================================
-   📗 2. ISSUE REQUEST LIST (Only Librarian)
+   📗 2. ISSUE REQUEST LIST
 ====================================================== */
 librarianController.issueRequest = async (req, res) => {
   try {
@@ -39,7 +39,7 @@ librarianController.issueRequest = async (req, res) => {
 };
 
 /* ======================================================
-   📕 3. RETURN REQUEST LIST (Only Librarian)
+   📕 3. RETURN REQUEST LIST
 ====================================================== */
 librarianController.returnRequest = async (req, res) => {
   try {
@@ -70,6 +70,9 @@ librarianController.approveRequest = async (req, res) => {
 
     request.status = "Issued";
     request.approvedBy = req.userInfo.id;
+    request.issueDate = new Date();
+    request.dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
     await request.save();
 
     await BookModel.findByIdAndUpdate(request.bookId, {
@@ -100,6 +103,7 @@ librarianController.approveReturnRequest = async (req, res) => {
     request.status = "Returned";
     request.returnDate = new Date();
     request.approvedBy = req.userInfo.id;
+
     await request.save();
 
     await BookModel.findByIdAndUpdate(request.bookId, {
@@ -127,7 +131,7 @@ librarianController.rejectReturnRequest = async (req, res) => {
       });
     }
 
-    request.status = "Issued"; // Still with user
+    request.status = "Issued";
     await request.save();
 
     res.json({ message: "Return request rejected" });
@@ -138,7 +142,7 @@ librarianController.rejectReturnRequest = async (req, res) => {
 };
 
 /* ======================================================
-   📙 7. BORROWED BOOKS LIST (Admin + Librarian)
+   📙 7. BORROWED BOOKS LIST
 ====================================================== */
 librarianController.borrowedBooks = async (req, res) => {
   try {
@@ -156,4 +160,4 @@ librarianController.borrowedBooks = async (req, res) => {
   }
 };
 
-module.exports = { librarian};
+module.exports = { librarianController };

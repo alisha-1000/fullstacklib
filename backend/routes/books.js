@@ -1,29 +1,44 @@
 const express = require("express");
 const router = express.Router();
-const { booksController } = require("../controller/books");
+
+const booksController = require("../controller/books");
 const { userAuth } = require("../middlewares/userAuth");
 const { checkRole } = require("../middlewares/checkRole");
+const { upload } = require("../utils/cloudConfig");
 
 // ADD BOOK
 router.post(
   "/add",
   userAuth,
   checkRole(["admin", "librarian"]),
+  upload.single("coverImage"),
   booksController.addNewBook
 );
 
-// STUDENT ISSUED BOOKS
+// STUDENT VIEW ISSUED BOOKS
+router.get("/issued", userAuth, checkRole(["student"]), booksController.getIssuedBooks);
+
+// ALL BOOKS
+router.get("/", booksController.getAllBooks);
+
+// ISSUE REQUEST LIST (Admin + Librarian)
 router.get(
-  "/issued",
+  "/issuedrequest",
   userAuth,
-  checkRole(["student", "user"]),
-  booksController.getIssuedBooks
+  checkRole(["admin", "librarian"]),
+  booksController.getIssuedRequest
 );
 
-// PUBLIC ROUTES
-router.get("/issuedrequest", booksController.getIssuedRequest);
+// APPROVE ISSUE REQUEST (IMPORTANT → only ONE route!)
+router.put(
+  "/approve/:borrowId",
+  userAuth,
+  checkRole(["admin", "librarian"]),
+  booksController.approveIssue
+);
+
+// NEW BOOKS
 router.get("/new", booksController.getLatestBooks);
-router.get("/", booksController.getAllBooks);
 
 // DELETE BOOK
 router.delete(
@@ -45,39 +60,22 @@ router.put(
 router.post(
   "/borrow/request-issue/:bookid",
   userAuth,
-  checkRole(["student", "user"]),
+  checkRole(["student"]),
   booksController.reqIssueBook
 );
 
-/* ============================================
-   ADMIN/LIBRARIAN APPROVE RETURN ★ FIXED ORDER
-=============================================== */
-router.put(
-  "/return/:id",
-  userAuth,
-  checkRole(["admin", "librarian"]),
-  booksController.returnBook
-);
+// STUDENT RETURN
+router.put("/return/:id", userAuth, checkRole(["student"]), booksController.returnBook);
 
-/* ============================================
-   STUDENT REQUEST RETURN
-=============================================== */
+// STUDENT REQUEST RETURN
 router.put(
   "/returnrequest/:id",
   userAuth,
-  checkRole(["student", "user"]),
+  checkRole(["student"]),
   booksController.requestReturnBook
 );
 
-// ADMIN/LIBRARIAN APPROVE ISSUE
-router.put(
-  "/approve/:requestId",
-  userAuth,
-  checkRole(["admin", "librarian"]),
-  booksController.approveIssue
-);
-
-// MUST BE LAST — dynamic route
+// LAST ROUTE
 router.get("/:id", booksController.getParticularBook);
 
 module.exports = router;

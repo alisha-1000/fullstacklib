@@ -1,90 +1,82 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import "./books.css";
+import "./books.css"
 import { useNavigate } from "react-router-dom";
 import { Server_URL } from "../../utils/config";
 import { showErrorToast, showSuccessToast } from "../../utils/toasthelper";
+
 
 const Books = () => {
   const [books, setBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categories, setCategories] = useState(["All"]);
+  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
 
+
   const navigate = useNavigate();
 
-  // ============================
-  // Issue Book
-  // ============================
-  async function issueBook(bookid) {
-    try {
-      const authToken = localStorage.getItem("authToken");
 
-      if (!authToken) {
-        showErrorToast("Please login to issue a book.");
-        return;
+  async function issueBook(bookid) {
+        try {
+          console.log("bookId");
+            console.log(bookid);
+          const authToken = localStorage.getItem("authToken");
+          console.log(authToken)
+          if (!authToken) {
+            showErrorToast("Please login to issue a book.");
+            return;
+        }
+           const url =Server_URL + 'borrow/request-issue/'+bookid;
+           const response = await axios.post(`${Server_URL}books/borrow/request-issue/${bookid}`,{}, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+
+          // alert(response.data);
+          const {error,message} = response.data;
+          if(error){
+            console.log(error);
+            showErrorToast(message)
+          }
+          else{
+            showSuccessToast(message);
+          }
+        } catch (error) {
+          // console.error("Error:", error.response?.data || error.message);
+          showErrorToast(error.response?.data?.message || "Something went wrong! Please try again.");
+          
+        }    
+      }
+    
+      async function bookDetails(bookid) {
+        console.log(bookid)
+        navigate(`/bookdetails/${bookid}`);       
       }
 
-      const response = await axios.post(
-        `${Server_URL}books/borrow/request-issue/${bookid}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
-
-      const { error, message } = response.data;
-
-      if (error) showErrorToast(message);
-      else showSuccessToast(message);
-
-    } catch (error) {
-      showErrorToast(error.response?.data?.message || "Something went wrong! Please try again.");
-    }
-  }
-
-  function bookDetails(bookid) {
-    navigate(`/bookdetails/${bookid}`);
-  }
-
-  // ============================
-  // Fetch Books
-  // ============================
   useEffect(() => {
     setIsLoading(true);
-
     axios.get(`${Server_URL}books`)
       .then((response) => {
-        const booksArray = response.data?.books || [];  // SAFE fallback
-
-        setBooks(booksArray);
-        setFilteredBooks(booksArray);
-
-        const uniqueCategories = ["All", ...new Set(booksArray.map(book => book.category))];
-        setCategories(uniqueCategories);
+        if (!response.data.error) {
+          setBooks(response.data.books);
+          setFilteredBooks(response.data.books);
+          const uniqueCategories = ["All", ...new Set(response.data.books.map(book => book.category))];
+          setCategories(uniqueCategories);
+        }
       })
       .catch((error) => {
         console.error("Error fetching books:", error);
-        setBooks([]);
-        setFilteredBooks([]);
-        setCategories(["All"]);
-      })
-      .finally(() => {
+      }).finally(() => {
         setIsLoading(false);
       });
   }, []);
 
-  // ============================
-  // Search & Filter
-  // ============================
   const handleSearch = (e) => {
-    const search = e.target.value;
-    setSearchTerm(search);
-    filterBooks(search, selectedCategory);
+    setSearchTerm(e.target.value);
+    filterBooks(e.target.value, selectedCategory);
   };
 
   const handleCategoryChange = (category) => {
@@ -94,35 +86,32 @@ const Books = () => {
 
   const filterBooks = (search, category) => {
     let filtered = books;
-
+    
     if (category !== "All") {
       filtered = filtered.filter(book => book.category === category);
     }
-
+    
     if (search) {
-      filtered = filtered.filter(book =>
-        book.title.toLowerCase().includes(search.toLowerCase())
-      );
+      filtered = filtered.filter(book => book.title.toLowerCase().includes(search.toLowerCase()));
     }
-
+    
     setFilteredBooks(filtered);
   };
 
-  // ============================
-  // Render UI
-  // ============================
+
   return (
     <div className="container-fluid books-container">
       <div className="row">
-
-        {/* Sidebar Categories */}
+      
         <div className="col-md-3 p-4 sidebar">
           <h4 className="text-center mb-4">📚 Categories</h4>
           <div className="category-scroll">
-            {categories?.map((category, index) => (
+            {categories.map((category, index) => (
               <div
                 key={index}
-                className={`category-item ${selectedCategory === category ? "active" : ""}`}
+                className={`category-item ${
+                  selectedCategory === category ? "active" : ""
+                }`}
                 onClick={() => handleCategoryChange(category)}
               >
                 {category}
@@ -131,7 +120,6 @@ const Books = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="col-md-9 main-content">
           <div className="search-header p-3">
             <h2 className="page-title">All Books</h2>
@@ -147,15 +135,13 @@ const Books = () => {
             </div>
           </div>
 
-          {/* Loading State */}
           {isLoading ? (
             <div className="loading-spinner">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
             </div>
-          ) : filteredBooks?.length > 0 ? (
-            // Books Grid
+          ) : filteredBooks.length > 0 ? (
             <div className="books-grid">
               {filteredBooks.map((book, index) => (
                 <div key={index} className="book-card">
@@ -195,7 +181,6 @@ const Books = () => {
               ))}
             </div>
           ) : (
-            // No Books Found
             <div className="no-books-found">
               <i className="bi bi-book-slash"></i>
               <h4>No books found!</h4>

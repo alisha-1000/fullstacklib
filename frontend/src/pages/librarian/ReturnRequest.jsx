@@ -7,23 +7,20 @@ export default function ReturnRequest() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem("authToken");
-  const role = localStorage.getItem("role");
-
-  // FETCH REQUESTS
   const fetchRequests = async () => {
     try {
       const url = Server_URL + "librarian/returnrequest";
 
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
 
-      setRequests(res.data.requests || []);
+      setRequests(response.data.requests || []);
+      setLoading(false);
     } catch (err) {
       console.error("Fetch error:", err);
-      showErrorToast("Failed to load requests");
-    } finally {
       setLoading(false);
     }
   };
@@ -32,89 +29,94 @@ export default function ReturnRequest() {
     fetchRequests();
   }, []);
 
-  // APPROVE REQUEST
-  const approveRequest = async (id) => {
+  const approve = async (id) => {
     try {
-      const url = Server_URL + `librarian/approvereturnrequest/${id}`;
+      const url = Server_URL + "librarian/approvereturnrequest/" + id;
 
-      const res = await axios.put(
+      await axios.put(
         url,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        }
       );
 
-      showSuccessToast(res.data.message || "Request approved!");
+      showSuccessToast("Return Approved!");
       fetchRequests();
     } catch (err) {
-      showErrorToast(
-        err.response?.data?.message || "Failed to approve request"
-      );
+      showErrorToast("Failed to approve request");
     }
   };
 
-  // REJECT REQUEST
-  const rejectRequest = async (id) => {
+  const reject = async (id) => {
     try {
-      const url = Server_URL + `librarian/rejectreturn/${id}`;
+      const url = Server_URL + "librarian/rejectreturn/" + id;
 
-      const res = await axios.put(
+      await axios.put(
         url,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        }
       );
 
-      showSuccessToast(res.data.message || "Request rejected!");
+      showSuccessToast("Request Rejected");
       fetchRequests();
     } catch (err) {
-      showErrorToast("Failed to reject request");
+      showErrorToast("Failed to reject");
     }
   };
 
-  // STATUS BADGE
-  const statusBadge = (status) => {
-    const s = status?.toLowerCase();
-    const map = {
-      pending: "bg-warning",
-      approved: "bg-success",
-      rejected: "bg-danger",
-      overdue: "bg-dark",
-    };
-    return <span className={`badge ${map[s] || "bg-secondary"}`}>{status}</span>;
+  const badge = (status) => {
+    switch (status) {
+      case "Requested Return":
+        return <span className="badge bg-warning text-dark">Requested Return</span>;
+      case "Returned":
+        return <span className="badge bg-success">Returned</span>;
+      case "Issued":
+        return <span className="badge bg-secondary">Issued</span>;
+      default:
+        return <span className="badge bg-secondary">{status}</span>;
+    }
   };
 
-  // SAFE DATE FUNCTION
   const safeDate = (date) => {
+    if (!date) return "N/A";
     const d = new Date(date);
     return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
   };
 
+  // Calculate fine (same as backend)
+  const calcFine = (dueDate) => {
+    if (!dueDate) return 0;
+
+    const today = new Date();
+    const due = new Date(dueDate);
+
+    if (today <= due) return 0;
+
+    const diffDays = Math.ceil((today - due) / (1000 * 60 * 60 * 24));
+
+    return diffDays * 5; // ₹5 per day rule
+  };
+
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">📚 Return Book Requests</h2>
+    <div className="container mt-5 mb-5">
+      <h3 className="mb-4">
+        📚 <b>Return Request</b>
+      </h3>
 
-      {/* LOADING */}
-      {loading && (
-        <div className="text-center py-4">
-          <div className="spinner-border text-primary"></div>
-          <p className="mt-2">Loading return requests...</p>
-        </div>
-      )}
-
-      {/* EMPTY */}
-      {!loading && requests.length === 0 && (
-        <div className="alert alert-info text-center">
-          No pending return requests.
-        </div>
-      )}
-
-      {/* TABLE */}
-      {!loading && requests.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover shadow-sm">
+      {loading ? (
+        <p className="text-center">Loading...</p>
+      ) : requests.length === 0 ? (
+        <div className="alert alert-info text-center">No return requests</div>
+      ) : (
+        <div className="table-responsive shadow rounded">
+          <table className="table table-bordered table-hover">
             <thead className="table-primary text-center">
               <tr>
-                <th>User Name</th>
-                <th>Book Title</th>
+                <th>User</th>
+                <th>Book</th>
                 <th>Issued On</th>
                 <th>Due Date</th>
                 <th>Fine</th>
@@ -125,38 +127,34 @@ export default function ReturnRequest() {
 
             <tbody>
               {requests.map((req) => (
-                <tr key={req._id}>
-                  <td>{req.userId?.name || "N/A"}</td>
-                  <td>{req.bookId?.title || "N/A"}</td>
+                <tr key={req._id} className="text-center align-middle">
+                  <td>{req.userId?.name}</td>
+                  <td>{req.bookId?.title}</td>
                   <td>{safeDate(req.issueDate)}</td>
                   <td>{safeDate(req.dueDate)}</td>
-                  <td>₹{req.fine ?? 0}</td>
+                  <td>₹{calcFine(req.dueDate)}</td>
 
-                  <td className="text-center">{statusBadge(req.status)}</td>
+                  <td>{badge(req.status)}</td>
 
-                  <td className="text-center">
-                    {/* Only librarian can approve/reject */}
-                    {role === "librarian" && (
+                  <td>
+                    {req.status === "Requested Return" ? (
                       <>
                         <button
                           className="btn btn-success btn-sm me-2"
-                          onClick={() => approveRequest(req._id)}
+                          onClick={() => approve(req._id)}
                         >
                           ✔ Approve
                         </button>
 
                         <button
                           className="btn btn-danger btn-sm"
-                          onClick={() => rejectRequest(req._id)}
+                          onClick={() => reject(req._id)}
                         >
                           ✘ Reject
                         </button>
                       </>
-                    )}
-
-                    {/* Admin can view but cannot approve */}
-                    {role === "admin" && (
-                      <span className="text-muted">View Only</span>
+                    ) : (
+                      <span className="text-muted">No actions</span>
                     )}
                   </td>
                 </tr>

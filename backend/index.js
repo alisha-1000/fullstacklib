@@ -14,18 +14,29 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 app.use(express.json());
 
+// -------------------- ROUTES --------------------
+
+// Admin routes
 app.use("/admin", require("./routes/admin"));
-app.use("/api", require("./routes/borrow"));
 
+// Librarian routes (IMPORTANT)
+app.use("/librarian", require("./routes/librarian"));
 
+// Books routes
+app.use("/books", require("./routes/books"));
 
-// ROUTES
-app.use("/home", require("./routes/home"));
+// User routes
 app.use("/users", require("./routes/user"));
-   // 🔥 REQUIRED
-app.use("/books", require("./routes/books"));    // 🔥 REQUIRED
+
+// Home route
+app.use("/home", require("./routes/home"));
+
+// REMOVE THIS — NOT NEEDED
+// app.use("/api", require("./routes/borrow"));
+// ------------------------------------------------
 
 // Server
 const PORT = process.env.PORT || 5001;

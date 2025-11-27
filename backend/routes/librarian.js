@@ -5,59 +5,63 @@ const { librarianController } = require("../controller/librarian");
 const { userAuth } = require("../middlewares/userAuth");
 const { checkRole } = require("../middlewares/checkRole");
 
-// Book Issued List
-router.get(
-  "/bookissued",
-  userAuth,
-  checkRole(["admin", "librarian"]),
-  librarianController.bookIssued
-);
-
-// Issue Request List
+/* --------------------------------------------------
+   ISSUE REQUEST LIST (Student requested issue)
+-------------------------------------------------- */
 router.get(
   "/issuerequest",
   userAuth,
-  checkRole("librarian"),
+  checkRole(["librarian", "admin"]),
   librarianController.issueRequest
 );
 
-// Return Request List
-router.get(
-  "/returnrequest",
-  userAuth,
-  checkRole("librarian"),
-  librarianController.returnRequest
-);
-
-// Approve Issue Request
+/* --------------------------------------------------
+   APPROVE ISSUE REQUEST
+-------------------------------------------------- */
 router.put(
   "/approverequest/:id",
   userAuth,
-  checkRole("librarian"),
+  checkRole(["librarian", "admin"]),
   librarianController.approveRequest
 );
 
-// Approve Return Request
+/* --------------------------------------------------
+   RETURN REQUEST LIST
+-------------------------------------------------- */
+router.get(
+  "/returnrequest",
+  userAuth,
+  checkRole(["librarian", "admin"]),
+  librarianController.returnRequest
+);
+
+/* --------------------------------------------------
+   APPROVE RETURN REQUEST
+-------------------------------------------------- */
 router.put(
   "/approvereturnrequest/:id",
   userAuth,
-  checkRole("librarian"),
+  checkRole(["librarian", "admin"]),
   librarianController.approveReturnRequest
 );
 
-// Reject Return Request  (REQUIRED FOR FRONTEND)
+/* --------------------------------------------------
+   REJECT RETURN REQUEST
+-------------------------------------------------- */
 router.put(
   "/rejectreturn/:id",
   userAuth,
-  checkRole("librarian"),
+  checkRole(["librarian", "admin"]),
   librarianController.rejectReturnRequest
 );
 
-// Borrowed Books List (REQUIRED FOR ADMIN PANEL)
+/* --------------------------------------------------
+   BORROWED BOOKS
+-------------------------------------------------- */
 router.get(
   "/borrowedbooks",
   userAuth,
-  checkRole(["admin", "librarian"]),
+  checkRole(["librarian", "admin"]),
   librarianController.borrowedBooks
 );
 
