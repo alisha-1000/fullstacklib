@@ -28,6 +28,11 @@ app.use("/librarian", require("./routes/librarian"));
 // Books routes
 app.use("/books", require("./routes/books"));
 
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
+
+
 // User routes
 app.use("/users", require("./routes/user"));
 
