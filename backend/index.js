@@ -42,7 +42,9 @@ app.use("/home", require("./routes/home"));
 // Server
 const PORT = process.env.PORT || 5001;
 
-
+app.get('/',(req,res)=>{
+  res.send("Hello")
+})
 
 app.listen(PORT,(error)=>{
   if(error){
