@@ -3,7 +3,7 @@
 
 A complete Library Management System built with MongoDB, Express.js, React.js, and Node.js. Features role-based access control with three user types (Admin, Librarian, Student), book management with Cloudinary image uploads, issue/return tracking, and automated fine calculations.
 
-## 🌐 Live Demo
+## 🌐 Live Demo:https://fullstacklib-398s.vercel.app/
 
 **Test Credentials:**
 Admin: admin@admin.com / admin123
