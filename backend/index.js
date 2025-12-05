@@ -35,10 +35,6 @@ app.use("/users", require("./routes/user"));
 // Home route
 app.use("/home", require("./routes/home"));
 
-// REMOVE THIS — NOT NEEDED
-// app.use("/api", require("./routes/borrow"));
-// ------------------------------------------------
-
 // Server
 const PORT = process.env.PORT || 5001;
 

@@ -12,7 +12,7 @@ const userAuth = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 IMPORTANT: attach full decoded payload (id, email, name, role)
+    // IMPORTANT: attach full decoded payload (id, email, name, role)
     req.userInfo = {
       id: decoded.id,
       email: decoded.email,

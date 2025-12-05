@@ -12,7 +12,7 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["student", "librarian", "admin"],
-      default: "student"   // ❗ FIXED — no "user"
+      default: "student"   
     }
   },
   { timestamps: true }

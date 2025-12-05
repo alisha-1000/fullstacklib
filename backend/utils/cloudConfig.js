@@ -11,7 +11,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "library_books", // Folder in Cloudinary
+    folder: "library_books", 
     allowed_formats: ["jpg", "png", "jpeg"],
     public_id: (req, file) => `${Date.now()}-${file.originalname}`,
   },
