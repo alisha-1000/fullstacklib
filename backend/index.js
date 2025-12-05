@@ -45,4 +45,5 @@ app.use("/home", require("./routes/home"));
 
 // Server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log("Server running on PORT", PORT));
+// 
+module.exports=app;
