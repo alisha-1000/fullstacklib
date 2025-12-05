@@ -1,7 +1,5 @@
 # 📚 Library Management System (MERN Stack)
 
-![MERN Stack](https://img.shields.io/badge/MERN-Full%20Stack-blue)
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://library-management-app-karan.vercel.app/)
 
 A complete Library Management System built with MongoDB, Express.js, React.js, and Node.js. Features role-based access control with three user types (Admin, Librarian, Student), book management with Cloudinary image uploads, issue/return tracking, and automated fine calculations.
 
